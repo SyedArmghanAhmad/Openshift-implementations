@@ -1,0 +1,94 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: groq-chatbot-pipeline
+spec:
+  params:
+    - name: git-repo
+      type: string
+      default: "https://github.com/your-repo/groq-chatbot.git"
+    - name: git-revision
+      type: string
+      default: "main"
+    - name: image-name
+      type: string
+      default: "groq-chatbot"
+    - name: image-tag
+      type: string
+      default: "latest"
+  
+  workspaces:
+    - name: shared-data
+  
+  tasks:
+    - name: fetch-source
+      taskRef:
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: shared-data
+      params:
+        - name: url
+          value: "$(params.git-repo)"
+        - name: revision
+          value: "$(params.git-revision)"
+        - name: deleteExisting
+          value: "true"
+    
+    - name: build-image
+      taskRef:
+        name: buildah
+      runAfter:
+        - fetch-source
+      workspaces:
+        - name: source
+          workspace: shared-data
+      params:
+        - name: IMAGE
+          value: "$(params.image-name)"
+        - name: TLSVERIFY
+          value: "false"
+        - name: CONTEXT
+          value: "app"
+        - name: DOCKERFILE
+          value: "app/Dockerfile"
+    
+    - name: deploy-dev
+      taskRef:
+        name: openshift-client
+      runAfter:
+        - build-image
+      params:
+        - name: SCRIPT
+          value: |
+            oc apply -f openshift/deployment.yaml -n dev
+            oc apply -f openshift/service.yaml -n dev
+            oc apply -f openshift/route.yaml -n dev
+            
+    - name: run-tests
+      taskRef:
+        name: openshift-client
+      runAfter:
+        - deploy-dev
+      params:
+        - name: SCRIPT
+          value: |
+            # Add your test commands here
+            echo "Running smoke tests..."
+            
+    - name: promote-to-prod
+      taskRef:
+        name: openshift-client
+      runAfter:
+        - run-tests
+      when:
+        - input: "$(params.promote-to-prod)"
+          operator: in
+          values: ["true"]
+      params:
+        - name: SCRIPT
+          value: |
+            oc tag dev/$(params.image-name):$(params.image-tag) prod/$(params.image-name):$(params.image-tag)
+            oc apply -f openshift/deployment.yaml -n prod
+            oc apply -f openshift/service.yaml -n prod
+            oc apply -f openshift/route.yaml -n prod

@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: groq-chatbot
+  labels:
+    app: groq-chatbot
+    app.kubernetes.io/part-of: genai-app
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: groq-chatbot
+  template:
+    metadata:
+      labels:
+        app: groq-chatbot
+      annotations:
+        openshift.io/scc: restricted
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: chatbot
+        image: image-registry.openshift-image-registry.svc:5000/<namespace>/groq-chatbot:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: GROQ_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: groq-secrets
+              key: api-key
+        - name: STREAMLIT_SERVER_PORT
+          value: "8080"
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+        readinessProbe:
+          httpGet:
+            path: /_stcore/health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /_stcore/health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20

@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyenv
+*.venv
+venv/
+.env
+
+# Dependency directories
+node_modules/
+bower_components/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+
+# Git
+.git/
+.gitignore
+
+# Build files
+dist/
+build/
+*.egg-info/
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+
+# Test files
+tests/
+test/
+coverage/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# OpenShift specific
+openshift/tmp/
