@@ -7,53 +7,62 @@ spec:
     - name: git-repo
       type: string
       default: "https://github.com/SyedArmghanAhmad/Openshift-implementations.git"
-    - name: git-revision
-      type: string
-      default: "main"
     - name: image-name
       type: string
       default: "groq-chatbot"
-  
-  workspaces:
-    - name: shared-data
-  
-  tasks:
-    - name: fetch-source
-      taskRef:
-        name: git-clone
-      workspaces:
-        - name: output
-          workspace: shared-data
-      params:
-        - name: url
-          value: "$(params.git-repo)"
-        - name: revision
-          value: "$(params.git-revision)"
 
-    - name: build-image
+  tasks:
+    - name: build
       taskRef:
         name: buildah
-      runAfter:
-        - fetch-source
-      workspaces:
-        - name: source
-          workspace: shared-data
       params:
         - name: IMAGE
           value: "image-registry.openshift-image-registry.svc:5000/armghan18/$(params.image-name)"
-        - name: CONTEXT
-          value: "app"
         - name: DOCKERFILE
           value: "app/Dockerfile"
+        - name: CONTEXT
+          value: "app"
 
-    - name: deploy
+    - name: deploy-dev
       taskRef:
         name: openshift-client
-      runAfter:
-        - build-image
+      runAfter: ["build"]
       params:
         - name: SCRIPT
           value: |
-            oc apply -f openshift/deployment.yaml -n armghan18
-            oc apply -f openshift/service.yaml -n armghan18
-            oc apply -f openshift/route.yaml -n armghan18
+            oc apply -f openshift/deployment-dev.yaml
+            oc apply -f openshift/route-dev.yaml
+
+    - name: approve-uat
+      taskRef:
+        name: approval-task
+      runAfter: ["deploy-dev"]
+      params:
+        - name: MESSAGE
+          value: "Approve UAT deployment?"
+
+    - name: promote-uat
+      taskRef:
+        name: openshift-client
+      runAfter: ["approve-uat"]
+      params:
+        - name: SCRIPT
+          value: |
+            oc tag groq-chatbot:latest groq-chatbot:stable
+            oc apply -f openshift/deployment-uat.yaml
+            oc apply -f openshift/route-uat.yaml
+
+    - name: approve-prod
+      taskRef:
+        name: approval-task
+      runAfter: ["promote-uat"]
+
+    - name: promote-prod
+      taskRef:
+        name: openshift-client
+      runAfter: ["approve-prod"]
+      params:
+        - name: SCRIPT
+          value: |
+            oc apply -f openshift/deployment-prod.yaml
+            oc apply -f openshift/route-prod.yaml

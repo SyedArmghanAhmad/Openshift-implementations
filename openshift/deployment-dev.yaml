@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: groq-chatbot-dev
+  labels:
+    app: groq-chatbot
+    env: dev
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: groq-chatbot
+      env: dev
+  template:
+    metadata:
+      labels:
+        app: groq-chatbot
+        env: dev
+      annotations:
+        openshift.io/scc: restricted
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: chatbot
+        image: image-registry.openshift-image-registry.svc:5000/armghan18/groq-chatbot:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: GROQ_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: groq-secret
+              key: api-key
+        - name: ENV_TYPE
+          value: "dev"
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+        readinessProbe:
+          httpGet:
+            path: /_stcore/health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /_stcore/health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20

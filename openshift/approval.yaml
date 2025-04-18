@@ -1,0 +1,15 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: approval-task
+spec:
+  params:
+    - name: MESSAGE
+      type: string
+  steps:
+    - name: wait
+      image: registry.access.redhat.com/ubi8/ubi-minimal
+      script: |
+        echo "$(params.MESSAGE)"
+        echo "Paused. Approve via CLI: 'oc delete pod -n armghan18 -l tekton.dev/taskRun=$(context.taskRun.name)'"
+        sleep 86400  # 24h timeout

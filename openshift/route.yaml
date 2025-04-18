@@ -1,13 +1,21 @@
+# route-dev.yaml
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: groq-chatbot
-  labels:
-    app: groq-chatbot
-    app.kubernetes.io/part-of: genai-app
+  name: groq-chatbot-dev
 spec:
-  port:
-    targetPort: 8080
+  host: dev-chatbot-armghan18.apps.yourcluster.com
   to:
-    kind: Service
-    name: groq-chatbot
+    kind: Deployment
+    name: groq-chatbot-dev
+
+# route-uat.yaml (similar for UAT/PROD)
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: groq-chatbot-uat
+spec:
+  host: uat-chatbot-armghan18.apps.yourcluster.com
+  to:
+    kind: Deployment
+    name: groq-chatbot-uat

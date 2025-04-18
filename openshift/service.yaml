@@ -4,14 +4,9 @@ metadata:
   name: groq-chatbot
   labels:
     app: groq-chatbot
-    app.kubernetes.io/part-of: genai-app
 spec:
   ports:
-  - name: http
-    port: 8080
+  - port: 8080
     targetPort: 8080
-    protocol: TCP
   selector:
-    matchLabels:
-      app: groq-chatbot
-  type: ClusterIP
+    app: groq-chatbot
