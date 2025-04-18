@@ -6,16 +6,13 @@ spec:
   params:
     - name: git-repo
       type: string
-      default: "https://github.com/your-repo/groq-chatbot.git"
+      default: "https://github.com/SyedArmghanAhmad/Openshift-implementations.git"
     - name: git-revision
       type: string
       default: "main"
     - name: image-name
       type: string
       default: "groq-chatbot"
-    - name: image-tag
-      type: string
-      default: "latest"
   
   workspaces:
     - name: shared-data
@@ -32,9 +29,7 @@ spec:
           value: "$(params.git-repo)"
         - name: revision
           value: "$(params.git-revision)"
-        - name: deleteExisting
-          value: "true"
-    
+
     - name: build-image
       taskRef:
         name: buildah
@@ -45,15 +40,13 @@ spec:
           workspace: shared-data
       params:
         - name: IMAGE
-          value: "$(params.image-name)"
-        - name: TLSVERIFY
-          value: "false"
+          value: "image-registry.openshift-image-registry.svc:5000/armghan18/$(params.image-name)"
         - name: CONTEXT
           value: "app"
         - name: DOCKERFILE
           value: "app/Dockerfile"
-    
-    - name: deploy-dev
+
+    - name: deploy
       taskRef:
         name: openshift-client
       runAfter:
@@ -61,34 +54,6 @@ spec:
       params:
         - name: SCRIPT
           value: |
-            oc apply -f openshift/deployment.yaml -n dev
-            oc apply -f openshift/service.yaml -n dev
-            oc apply -f openshift/route.yaml -n dev
-            
-    - name: run-tests
-      taskRef:
-        name: openshift-client
-      runAfter:
-        - deploy-dev
-      params:
-        - name: SCRIPT
-          value: |
-            # Add your test commands here
-            echo "Running smoke tests..."
-            
-    - name: promote-to-prod
-      taskRef:
-        name: openshift-client
-      runAfter:
-        - run-tests
-      when:
-        - input: "$(params.promote-to-prod)"
-          operator: in
-          values: ["true"]
-      params:
-        - name: SCRIPT
-          value: |
-            oc tag dev/$(params.image-name):$(params.image-tag) prod/$(params.image-name):$(params.image-tag)
-            oc apply -f openshift/deployment.yaml -n prod
-            oc apply -f openshift/service.yaml -n prod
-            oc apply -f openshift/route.yaml -n prod
+            oc apply -f openshift/deployment.yaml -n armghan18
+            oc apply -f openshift/service.yaml -n armghan18
+            oc apply -f openshift/route.yaml -n armghan18

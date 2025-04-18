@@ -6,11 +6,8 @@ metadata:
     app: groq-chatbot
     app.kubernetes.io/part-of: genai-app
 spec:
-  host: groq-chatbot-<namespace>.apps.<cluster-domain>
   port:
     targetPort: 8080
   to:
     kind: Service
     name: groq-chatbot
-    weight: 100
-  wildcardPolicy: None
